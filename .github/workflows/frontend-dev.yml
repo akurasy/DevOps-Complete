@@ -5,8 +5,8 @@ on:
     branches:
       - dev
     paths-ignore:
-      - 'Kubernetes/*'
-      - 'Terraform/*'
+      - 'Kubernetes/**'
+      - 'Terraform/**'
       - '.github/workflows/backend.yaml'
   pull_request:
     branches:
