@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: frontend-{{ .Values.namespace }}
-          image: "166937434313.dkr.ecr.us-east-1.amazonaws.com/frontend"
+          image: "166937434313.dkr.ecr.us-east-1.amazonaws.com/frontend:{{ .Values.tag }}"
           imagePullPolicy: Always
           ports:
             - containerPort: 5173
