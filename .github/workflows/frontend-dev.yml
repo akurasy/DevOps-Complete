@@ -126,7 +126,7 @@ jobs:
 
     - name: Update tag in Helm chart
       run: |
-        sed -i 's/tag: .*/tag: "${{github.run_id}}"/' helm/fastapi-chart/values-frontend-dev.yaml
+        sed -i 's/tag: .*/tag: "${{ github.sha }}"/' Kubernetes/helm/fastapi-chart/values-frontend-dev.yaml
 
     - name: Commit and push changes
       run: |
