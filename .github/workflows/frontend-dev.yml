@@ -132,6 +132,6 @@ jobs:
       run: |
         git config --global user.email "akurracy@gmail.com"
         git config --global user.name "Oke Babatunde"
-        git add helm/fastapi-chart/values-frontend-dev.yaml
+        git add Kubernetes/helm/fastapi-chart/values-frontend-dev.yaml
         git commit -m "Update tag in Helm chart Frontend dev"
         git push
