@@ -5,7 +5,7 @@ deployPostgres: false
 deployIngress: false
 
 namespace: dev
-tag: "ac317afd5d105fd9396eb02c5a7ae0c8df76212f"
+tag: "607284a996623397fde355759ac4a602710e092f"
 resources:
   requests:
     cpu_frontend: "500m"
