@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: backend-{{ .Values.namespace }}
-          image: 166937434313.dkr.ecr.us-east-1.amazonaws.com/backend
+          image: 166937434313.dkr.ecr.us-east-1.amazonaws.com/backend:{{ .Values.tag }}
           imagePullPolicy: Always
           ports:
             - containerPort: 8000

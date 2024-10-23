@@ -6,6 +6,7 @@ deployPostgres: false
 deployIngress: false
 
 namespace: prod
+tag: latest
 
 resources:
   requests:
