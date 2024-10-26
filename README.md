@@ -823,7 +823,7 @@ to get the load balancer dns name, run the commanmd
 kubectl get ingress -n dev
 ```
 
-We can then copy the IP address and create an A record for it as follows:
+We can then copy the load balancer DNS address and create an A record for it as follows:
 
 frontend - dev.myakuracy.click
 
@@ -839,8 +839,12 @@ http://dev.myakuracy.click # you can use your own domain as you wish
 Login and check if there is an handshake between the frontend, backend and psotgres database, use the login credentials in the super user created inside the backend environmental variable, which can found inside the values-backend-dev.yaml file.
 
 
-# Repeat the above procedure for production environment by create the namespace for prod, the values.yaml files for your production and run the helm commands to deploy your prod environment. 
+# Repeat the above procedure for production environment by creating the namespace for prod, the values.yaml files for your production and run the helm commands to deploy your prod environment. 
 
+
+PLEASE NOTE: In the above set up, I only use one single loadbanacer to expose traffic for all the application in all the environments inside our kubernetes cluster. This is achieved by setting our service type to ClusterIP inside our service deployment and use this single loadbalancer to expose all the traffic. This is the cost optimization concept of kubernetes.
+
+# Phase3 (continous deployment and delivery with ArgoCD)
 
 
 
