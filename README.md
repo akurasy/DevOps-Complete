@@ -587,8 +587,11 @@ In the above files, the template houses all manifests file and we are calling so
 now goto the fastapi-chart directory and create values.yaml files for each environment and deployments. the following value files are created;
 
 For frontend: values-frontend-dev.yaml and values-frontend-prod.yaml
+
 For Bcakend: values-backend-dev.yaml and values-backend-prod.yaml
+
 For Ingress: values-ingress-dev.yaml and values-backend-ingress.yaml
+
 For Postgres: values-postgres-dev.yaml and values-postgres-prod.yaml
 
 # These files are for dev and prod environment respectively. But for this deployment, we will only focus on one environment which is the "dev" environment.
