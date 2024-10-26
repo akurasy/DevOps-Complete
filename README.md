@@ -836,7 +836,10 @@ now browse your frontend using the DNS name
 ```
 http://dev.myakuracy.click # you can use your own domain as you wish
 ```
-to login and check if there is an handshake between the frontend, backendf and psotgres database, use the login crdetials in the super user created inside the backend .env which can found inside the values-backend-dev.yaml file.
+Login and check if there is an handshake between the frontend, backend and psotgres database, use the login credentials in the super user created inside the backend environmental variable, which can found inside the values-backend-dev.yaml file.
+
+
+# Repeat the above procedure for production environment by create the namespace for prod, the values.yaml files for your production and run the helm commands to deploy your prod environment. 
 
 
 
