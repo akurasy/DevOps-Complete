@@ -824,7 +824,9 @@ kubectl get ingress -n dev
 ```
 
 We can then copy the IP address and create an A record for it as follows:
+
 frontend - dev.myakuracy.click
+
 backend - api-dev.myakuracy.click
 
 you can use your own  domain name to set this record. we have defined this domain names in our values-ingress-dev.yaml file and inside our environmentyal variables  (.env)
@@ -832,7 +834,7 @@ for each deployments
 
 now browse your frontend using the DNS name 
 ```
-http://dev-myakuracy.click # you can use your own domain as you wish
+http://dev.myakuracy.click # you can use your own domain as you wish
 ```
 to login and check if there is an handshake between the frontend, backendf and psotgres database, use the login crdetials in the super user created inside the backend .env which can found inside the values-backend-dev.yaml file.
 
