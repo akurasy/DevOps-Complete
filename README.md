@@ -256,10 +256,10 @@ This above directory contains all our helm directories and files. Please note, y
 
 
 the helm chart directory contains two default directories and two default files nmamely:
--  chart.yaml file
+-  chart.yaml file: This is like a metadata containing the information of our chart
 -  chart directory #please delete this directory
--  templates directory
--  values.yaml file
+-  templates directory : This contains our kuerntes manifest files
+-  values.yaml file : This is where we store varibales for our kubernetes manifest files
 -  
 ```
 #change directory to the heml chart
@@ -270,15 +270,301 @@ rm -f chart
 
 ```
 
+All our kubernetes manifest files are kept inside the templates directory
 
-
-
+change directory to templates
 
 ```
-cd fastapi-chart
+cd templates
+rm ./*  #remove everything you have here and put your own kubernetes manifest files.
+
+```
+now paste the following kubernetes manifest files in the template directory
+
+```
+cd templates
+```
+```
+vi frontend.yaml
 ```
 
+paste the below file 
 
+```
+{{- if .Values.deployFrontend }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: frontend-{{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: frontend-{{ .Values.namespace }}
+  template:
+    metadata:
+      labels:
+        app: frontend-{{ .Values.namespace }}
+    spec:
+      containers:
+        - name: frontend-{{ .Values.namespace }}
+          image: "166937434313.dkr.ecr.us-east-1.amazonaws.com/frontend:{{ .Values.tag }}"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5173
+          env:
+            - name: VITE_API_URL
+              value: "{{ .Values.env.VITE_API_URL }}"
+          resources:
+            requests:
+              cpu: "{{ .Values.resources.requests.cpu_frontend }}"
+              memory: "{{ .Values.resources.requests.memory_frontend }}"
+            limits:
+              cpu: "{{ .Values.resources.limits.cpu_frontend }}"
+              memory: "{{ .Values.resources.limits.memory_frontend }}"
+#          imagePullSecrets:
+#            - name: ecr-credentials
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-{{ .Values.namespace }}
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: frontend-{{ .Values.namespace }}
+  ports:
+    - protocol: TCP
+      port: 5173
+      targetPort: 5173
+  type: ClusterIP
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: frontend-{{ .Values.namespace }}
+  namespace: {{ .Values.namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontend-{{ .Values.namespace }}
+  minReplicas: {{ .Values.hpa.minReplicas }}
+  maxReplicas: {{ .Values.hpa.maxReplicas }}
+  targetCPUUtilizationPercentage: 80
+{{- end }}
+```
+```
+vi backend.yaml
+```
+apste the following backend manifest file
+
+```
+{{- if .Values.deployBackend }}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-{{ .Values.namespace }}
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: backend-{{ .Values.namespace }}
+  template:
+    metadata:
+      labels:
+        app: backend-{{ .Values.namespace }}
+    spec:
+      containers:
+        - name: backend-{{ .Values.namespace }}
+          image: 166937434313.dkr.ecr.us-east-1.amazonaws.com/backend:{{ .Values.tag }}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          env:
+            {{- range .Values.env }}
+            - name: "{{ .name }}"
+              value: "{{ .value }}"
+            {{- end }}
+          resources:
+            requests:
+              cpu: "{{ .Values.resources.requests.cpu }}"
+              memory: "{{ .Values.resources.requests.memory }}"
+            limits:
+              cpu: "{{ .Values.resources.limits.cpu }}"
+              memory: "{{ .Values.resources.limits.memory }}"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-{{ .Values.namespace }}
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: backend-{{ .Values.namespace }}
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP
+
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: server-hpa-{{ .Values.namespace }}
+  namespace: {{ .Values.namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend-{{ .Values.namespace }}
+  minReplicas: {{ .Values.hpa.minReplicas }}
+  maxReplicas: {{ .Values.hpa.maxReplicas }}
+  targetCPUUtilizationPercentage: {{ .Values.hpa.targetCPUUtilizationPercentage }}
+
+{{- end }}
+```
+
+```
+vi postgres.yaml   #for postgres server
+
+```
+
+paste the following inside postgres manifest file
+
+```
+{{- if .Values.deployPostgres }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv-{{ .Values.namespace }}
+  namespace: {{ .Values.namespace }} # Ensure your namespace is properly set
+spec:
+  capacity:
+    storage: {{ .Values.resources.requests.storage }}
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data
+  storageClassName: manual
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc-{{ .Values.namespace }}
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.resources.requests.storage }}
+  storageClassName: manual
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-{{ .Values.namespace }}
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-{{ .Values.namespace }}
+  template:
+    metadata:
+      labels:
+        app: postgres-{{ .Values.namespace }}
+    spec:
+      containers:
+        - name: postgres-{{ .Values.namespace }}
+          image: postgres:14
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_SERVER
+              value: "{{ .Values.env.POSTGRES_SERVER }}"
+            - name: POSTGRES_PORT
+              value: "{{ .Values.env.POSTGRES_PORT }}"
+            - name: POSTGRES_DB
+              value: "{{ .Values.env.POSTGRES_DB }}"
+            - name: POSTGRES_USER
+              value: "{{ .Values.env.POSTGRES_USER }}"
+            - name: POSTGRES_PASSWORD
+              value: "{{ .Values.env.POSTGRES_PASSWORD }}"
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-storage-{{ .Values.namespace }}
+      volumes:
+        - name: postgres-storage-{{ .Values.namespace }}
+          persistentVolumeClaim:
+            claimName: postgres-pvc-{{ .Values.namespace }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-{{ .Values.namespace }}
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: postgres-{{ .Values.namespace }}
+  type: ClusterIP
+{{- end }}
+
+```
+
+```
+vi ingress.yaml
+```
+
+paste the following inside the ingress manifest file
+```
+{{- if .Values.deployIngress }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-{{ .Values.namespace | default "default" }}  # Fallback for missing namespace
+  namespace: {{ .Values.namespace | default "default" }}
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    # Enforce HTTP
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"  # Set this to "true" if you want HTTPS
+spec:
+  {{- if .Values.rules }}
+  ingressClassName: nginx
+  rules:
+    {{- range .Values.rules }}
+    {{- if .frontend_host }}
+    - host: {{ .frontend_host }}
+      http:
+        paths: {{ toJson .http.paths | indent 10 }}
+    {{- end }}
+    {{- if .backend_host }}
+    - host: {{ .backend_host }}
+      http:
+        paths: {{ toJson .http.paths | indent 10 }}
+    {{- end }}
+    {{- end }}
+  {{- else }}
+  # Error if no rules are defined
+  defaultBackend:
+    service:
+      name: backend-dev
+      port:
+        number: 80
+  {{- end }}
+{{- end }}
+```
 
 
  
