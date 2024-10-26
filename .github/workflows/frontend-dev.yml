@@ -7,7 +7,7 @@ on:
     paths-ignore:
       - 'Kubernetes/**'
       - 'Terraform/**'
-      - 'README.MD'
+      - 'README.md'
       - '.github/workflows/backend.yaml'
   pull_request:
     branches:
