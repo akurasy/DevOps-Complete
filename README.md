@@ -764,6 +764,77 @@ rules:
                 number: 8000
 ```
 
+In The above values file, we have variablelised all our kubenrtes objects and we are calling them as a vraible from the values file into our kubernetes manifest files
+
+
+# Second Phase (Deploying  our kubernetes using Helm)
+lets deploy namespace for cluster. we are only using the dev namespace for this project, so we have defined the "dev" namespace in our values file
+
+```
+kubectl create ns dev
+```
+
+deploy frontend, run the command
+
+```
+helm install frontend-dev ./fastapi-chart -f ./fastapi-chart/values-frontend-dev.yaml
+
+# frontend-dev is the name of the helm deployment
+# ./fastapi-chart is our helm chart that houses all our folders and files
+# ./fastapi-chart/values-frontend-dev.yaml is an instruction given to helm to check this file and use all the variables inside t deploy our frontend application
+
+```
+
+
+deploy backend, run the command
+
+```
+helm install backend-dev ./fastapi-chart -f ./fastapi-chart/values-backend-dev.yaml
+```
+
+deploy postgres, run the command
+
+```
+helm install postgres-dev ./fastapi-chart -f ./fastapi-chart/values-postgres-dev.yaml**
+```
+
+
+deploy ingress, run the command
+
+```
+helm install ingress-dev ./fastapi-chart -f ./fastapi-chart/values-ingress-dev.yaml
+```
+This above commands will deploy what we have written in our kuberntes manifests file using the variables in our values yaml file
+
+now to get the ingress-controller for your ingress, run the command;
+
+```
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/aws/deploy.yaml
+```
+
+This will deploy the ingress load balancer for our cluster. 
+
+to get the load balancer dns name, run the commanmd
+
+```
+kubectl get ingress -n dev
+```
+
+We can then copy the IP address and create an A record for it as follows:
+frontend - dev.myakuracy.click
+backend - api-dev.myakuracy.click
+
+you can use your own  domain name to set this record. we have defined this domain names in our values-ingress-dev.yaml file and inside our environmentyal variables  (.env)
+for each deployments
+
+now browse your frontend using the DNS name 
+``
+http://dev-myakuracy.click # you can use your own domain as you wish
+```
+to login and check if there is an handshake between the frontend, backendf and psotgres database, use the login crdetials in the super user created inside the backend .env which can found inside the values-backend-dev.yaml file.
+
+
+
 
 
 
