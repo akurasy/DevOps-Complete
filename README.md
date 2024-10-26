@@ -1218,6 +1218,86 @@ jobs:
 
 
 
+# STEP 4 (Monitoring and logging using Prometheus and Grafana)
+set up prometheus repo using helm. run the command
+```
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+```
+```
+vi prometheus.yaml
+```
+paste the below inside the file
+
+```
+server:
+  persistentVolume:
+    enabled: false
+  service:
+    type: LoadBalancer
+alertmanager:
+  enabled: false
+```
+
+run the command to install prometheus:
+```
+helm install prometheus prometheus-community/prometheus --values prometheus.yaml
+```
+
+
+Grafana Installation
+```
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+```
+```
+vi grafana.yaml
+```
+
+paste the below content:
+
+```service:
+  type: LoadBalancer
+```
+
+install grafana by running 
+```
+helm install grafana grafana/grafana --values grafana.yml
+```
+run the command to the grafana and prometheus load balancer dns
+```
+kubectl get svc
+```
+
+copy and browse the load balancer dns for your grafana
+
+resolve the load balancer of your proetheus service to a domain name. Example, Prometheus.myakuracy.click . This will be needed when setting the data source for grafana
+
+
+login to grafana UI usinf the follow credentials:
+username: admin
+password: run the command to echo the base64 decoded admin password 
+
+```
+kubectl get secret --namespace default grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+```
+You will be able to acess to access the grafana server UI
+
+On the UI, set up grafana as follows:
+
+On the left, click connections, select data source, add source, select prometheus and scroll down. 
+In the connection box, add the prometheus url and scroll down to click save and test. 
+
+Now let's add a dashboard. 
+Click on dashboard on the left, click create dashboard, click on add visualisation,  select prometheus, you can now customise your own dashboard or import and existing dashboard. 
+
+To Import dashboard, click on dashboard, select new on the upper right, click on import. Scroll down and Enter the dashboard ID: 6417 -- This ID will display the pod, deployment, replica, click on load. you can searhc for other preferred dashboard ID or URL. 
+
+Then scroll down and select prometheus server as the data source for the dashboard and click import. 
+
+
+# Happy Grafana and Prometheus Viewing
+
 
 
 
