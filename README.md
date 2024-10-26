@@ -44,9 +44,55 @@ Before you begin, ensure you have the following prerequisites in place:
 
 
 
-# STEP1
+# STEP1 (Infrastructure Provisioning)
+Before you begin this, a basic understanding of terraform is required. Look into the terraform script and change the variables to suite your deployment
 clone this repository into your server by running the command 
 
 ```
 git clone https://github.com/akurasy/devops-complete.git
 ```
+
+change directory to the terraform directory where all infrastructure code is kept.
+
+```
+cd Terraform
+```
+
+run the following commands to provision your infrastructure 
+
+```
+terraform init
+terraform plan
+terraform apply --auto-approve
+```
+
+# STEP2 (Connect to the cluster and run your Continous Integration with Github Actions)
+
+connect the cluster with the command 
+
+```
+aws eks update-kubeconfig --name zik-cluster --region us-east-1
+
+#the name of my cluster is zik-cluster and the cluster is deployed in us-east-1 region
+```
+
+After connecting to the cluster, we need to set up our CI using Github Actions to run the unit test code, scan the application for vulnerability using sonarqube, build the application with docker, scan our docker image with trivy and push the image to ECR repository. before deploying this CI, we need to set up a sonarqube server using docker. install docker and deploy sonarqube using the commands below
+
+```
+sudo apt install docker.io -y  #docker installation
+```
+
+```
+sudo docker run -d --name sonar -p 9000:9000 sonarqube #this will deploy sonarqube with latest tag
+```
+
+browse sonarqube with the public IP address of your server on port 9000
+
+http://Public-IP-Address:9000
+
+login username = admin
+
+login password = admin123
+
+
+goto this repository, click on actions and open a workflow tab to write your pipeline. You can give the flow anyname you want, but the workflow directory has ther naming convention ".github/workflows/name-of-workflow.yaml" .
