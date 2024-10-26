@@ -223,4 +223,62 @@ jobs:
           echo "Pushing Docker image to AWS ECR..."
           docker push ${{ env.IMAGE_URI }}  # Use the IMAGE_URI from the environment variable
 
+# FOR BACKEND CI, REPLACE ALL FRONTEND VARIABLES WITH BACKEND DETAILS, E.G, THE SONAR TOKEN FOR BACKEND PROJECT, BACKEND ECR REPO NAME, BACKND DIRECTORY FOR SONAR SCANNER, # and name the file as backend.yaml in the .gtihub/workflows directory 
+
 ```
+
+The above CI will do the following:
+-  run a unit test code
+-  scan the application for vulnerability
+-  build the image with docker
+-  scan the docker image with trivy
+-  tag the docker image using the latest commit sha of your git
+-  push the latest tag to AWS ECR.
+
+
+WHEN THIS IMAGE GETS TO AWS ECR, THIS IS WHERE OUR KUBERNETES DEPLOYMENT STARTS FROM.
+
+
+# step3 (Continous Deployment using Helm and Argocd)
+
+goto to your jump-server where you cloned this application, cd to the helm working directory
+ ```
+cd Kubernetes/helm
+
+#run the helm command to create the helm chart
+
+helm create fastapi  #fastapi is the name of our chat, you can call yours any name
+
+#this will create a default directory named fastapi-chart
+```
+
+This above directory contains all our helm directories and files. Please note, you have been instructed above to install helm using the above link containing the  [helm offical documentation](https://helm.sh/docs/intro/install/)
+
+
+the helm chart directory contains two default directories and two default files nmamely:
+-  chart.yaml file
+-  chart directory #please delete this directory
+-  templates directory
+-  values.yaml file
+-  
+```
+#change directory to the heml chart
+cd fastapi-chart
+
+#remove the default chart directory
+rm -f chart
+
+```
+
+
+
+
+
+```
+cd fastapi-chart
+```
+
+
+
+
+ 
