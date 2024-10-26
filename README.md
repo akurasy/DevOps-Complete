@@ -241,6 +241,7 @@ WHEN THIS IMAGE GETS TO AWS ECR, THIS IS WHERE OUR KUBERNETES DEPLOYMENT STARTS 
 
 # step3 (Continous Deployment using Helm and Argocd)
 
+# First Phase (setting up Helm Chart)
 goto to your jump-server where you cloned this application, cd to the helm working directory
  ```
 cd Kubernetes/helm
@@ -255,12 +256,26 @@ helm create fastapi  #fastapi is the name of our chat, you can call yours any na
 This above directory contains all our helm directories and files. Please note, you have been instructed above to install helm using the above link containing the  [helm offical documentation](https://helm.sh/docs/intro/install/)
 
 
-the helm chart directory contains two default directories and two default files nmamely:
+the helm chart directory contains two default directories and two default files mamely:
 -  chart.yaml file: This is like a metadata containing the information of our chart
 -  chart directory #please delete this directory
 -  templates directory : This contains our kuerntes manifest files
 -  values.yaml file : This is where we store varibales for our kubernetes manifest files
--  
+  
+The fastapi-chart directory chart looks like this:
+fastapi-chart/
+├── charts/
+├── templates/
+│   ├── deployment.yaml
+│   ├── _helpers.tpl
+│   ├── hpa.yaml
+│   ├── ingress.yaml
+│   ├── service.yaml
+│   └── serviceaccount.yaml
+├── .helmignore
+├── Chart.yaml
+└── values.yaml
+
 ```
 #change directory to the heml chart
 cd fastapi-chart
@@ -358,7 +373,7 @@ spec:
 ```
 vi backend.yaml
 ```
-apste the following backend manifest file
+Paste the following backend manifest file
 
 ```
 {{- if .Values.deployBackend }}
@@ -567,4 +582,188 @@ spec:
 ```
 
 
- 
+In the above files, the template houses all manifests file and we are calling some of the kubernetes objects as a vraibale from the values.yaml file, this files will be used to deploy our application in various environments without creating multiple kubernetes file for different environments. we will use this single file for each deployment accross all environments. This is what Helm will help us to achieve in deployment our application to different environments without creating multiple manifests files. all variables will be done in our values.yaml file. 
+
+now goto the fastapi-chart directory and create values.yaml files for each environment and deployments. the following value files are created;
+
+For frontend: values-frontend-dev.yaml and values-frontend-prod.yaml
+For Bcakend: values-backend-dev.yaml and values-backend-prod.yaml
+For Ingress: values-ingress-dev.yaml and values-backend-ingress.yaml
+For Postgres: values-postgres-dev.yaml and values-postgres-prod.yaml
+
+# These files are for dev and prod environment respectively. But for this deployment, we will only focus on one environment which is the "dev" environment.
+
+Inside the fastapi-chart directory, create the following files 
+
+```
+vi values-frontend-dev.yaml
+```
+
+paste the following for frontend values file dev environment
+
+```
+replicaCount: 1
+deployFrontend: true
+deployBackend: false
+deployPostgres: false
+deployIngress: false
+
+namespace: dev
+tag: "e4505af1c870ace813d82da4d45452aebb0c65f5"
+resources:
+  requests:
+    cpu_frontend: "500m"
+    memory_frontend: "750Mi"
+  limits:
+    cpu_frontend: "750m"
+    memory_frontend: "750Mi"
+
+hpa:
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 80
+
+env:
+  VITE_API_URL: "http://dev-app.myakuracy.click"
+```
+
+```
+vi values-backend-dev.yaml
+```
+paste the following for backend values file dev environment
+
+```
+replicaCount: 1
+
+deployFrontend: false
+deployBackend: true
+deployPostgres: false
+deployIngress: false
+
+namespace: dev
+tag: latest
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"  # Removed the extra quotation mark here
+  limits:
+    cpu: "500m"
+    memory: "1Gi"
+
+hpa:
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 80
+
+env:
+  - name: DOMAIN
+    value: "http://dev-app.myakuracy.click"
+  - name: ENVIRONMENT
+    value: "local"
+  - name: PROJECT_NAME
+    value: "Full Stack FastAPI Project"
+  - name: STACK_NAME
+    value: "full-stack-fastapi-project"
+  - name: BACKEND_CORS_ORIGINS
+    value: "http://dev.myakuracy.click"
+  - name: SECRET_KEY
+    value: "changethis123"
+  - name: FIRST_SUPERUSER
+    value: "devops@hng.tech"
+  - name: FIRST_SUPERUSER_PASSWORD
+    value: "devops#HNG11"
+  - name: USERS_OPEN_REGISTRATION
+    value: "True"
+  - name: SMTP_HOST
+    value: ""
+  - name: SMTP_USER
+    value: ""
+  - name: SMTP_PASSWORD
+    value: ""
+  - name: EMAILS_FROM_EMAIL
+    value: "info@example.com"
+  - name: SMTP_TLS
+    value: "True"
+  - name: SMTP_SSL
+    value: "False"
+  - name: SMTP_PORT
+    value: "587"
+  - name: POSTGRES_SERVER
+    value: "postgres-dev"
+  - name: POSTGRES_PORT
+    value: "5432"
+  - name: POSTGRES_DB
+    value: "app-dev"
+  - name: POSTGRES_USER
+    value: "app-dev"
+  - name: POSTGRES_PASSWORD
+    value: "changethis123-dev"
+```
+
+```
+vi values-postgres-dev.yaml
+```
+paste the following for postgres values file dev environment
+
+```
+namespace: dev
+
+deployFrontend: false
+deployBackend: false
+deployPostgres: true
+deployIngress: false
+
+capacity:
+  storage: 5Gi
+
+resources:
+  requests:
+    storage: 5Gi
+
+env:
+  POSTGRES_SERVER: "postgres-dev"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "app-dev"
+  POSTGRES_USER: "app-dev"
+  POSTGRES_PASSWORD: "changethis123-dev"
+```
+
+```
+vi values-ingress-dev.yaml
+```
+paste the following for ingress values file dev environment
+
+```
+namespace: dev
+
+deployFrontend: false
+deployBackend: false
+deployPostgres: false
+deployIngress: true
+
+rules:
+  - frontend_host: dev.myakuracy.click
+    http:
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: frontend-dev
+              port:
+                number: 5173
+  - backend_host: dev-app.myakuracy.click
+    http:
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: backend-dev
+              port:
+                number: 8000
+```
+
+
+
+
