@@ -103,7 +103,7 @@ login password = admin123
 on the sonarqube server, click on project ===> input the project name =====> create a token for your project (copy and save this token) ====> select locally set up the project =====> and click on other language or select the programming language you want to scan. The sonarqube scan command will show after creating the project, you will copy this command and save to use in your github actions pipeline.
 
 # Now lets run our CI
-Before we begin, you need to create a secret for your pipeline. To create a secret, click on settings, on the bottom left, under secrets click on actions, scroll down to repository secrets and select new repository, create a secret for your aws secret key, aws access key, sonarqube token, github token, aws ecr repository name, aws region, docker hub username and docker hub token.   After this, goto this repository, click on actions and open a workflow tab to write your pipeline. You can give the flow anyname you want, but the workflow directory has ther naming convention ".github/workflows/name-of-workflow.yaml" .
+Before we begin, you need to create a secret for your pipeline. To create a secret, click on settings, on the bottom left, under secrets click on actions, scroll down to repository secrets and select new repository, create a secret for your aws secret key, aws access key, sonarqube token (for frontend and backend), github token, aws ecr repository name (for frontend and backend), aws region, docker hub username and docker hub token.   After this, goto this repository, click on actions and open a workflow tab to write your pipeline. You can give the flow anyname you want, but the workflow directory has ther naming convention ".github/workflows/name-of-workflow.yaml" .
 
 Paste the below script for your CI pipeline named frontend.yaml. we are only creating this for the dev environment, so we created a github branch called "dev" . 
 
@@ -152,20 +152,20 @@ jobs:
       # SonarQube Scan
       - name: SonarQube Scan
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  #this is gotten from soanrqube configuration we did on soanrqube server.
+          SONAR_TOKEN_FRONTEND: ${{ secrets.SONAR_TOKEN_FRONTEND }}  #this is gotten from soanrqube configuration we did on soanrqube server.
         run: |
           sonar-scanner \
             -Dsonar.projectKey=frontend \     #our project name on sonarqube
             -Dsonar.sources=./frontend \    #the path we want to scan. this will ensure only the frontend directory is scanned.
             -Dsonar.host.url=http://52.91.52.173:9000 \ #replace 52.91.52.173 with your own public IP of youir sonarqube server.
-            -Dsonar.login=$SONAR_TOKEN  
+            -Dsonar.login=$SONAR_TOKEN_FRONTEND  
 
   docker_build_scan_push:
     needs: sonarcloud_scan
     runs-on: ubuntu-latest
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
-      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
     steps:
       # Checkout the repository
       - name: Checkout repository
@@ -204,7 +204,7 @@ jobs:
       - name: Tag Docker image
         id: tag-image
         run: |
-          IMAGE_URI=${{ secrets.ECR_REPOSITORY }}:${{ github.sha }} # This will tag your docker image with the last commit hash
+          IMAGE_URI=${{ secrets.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }} # This will tag your docker image with the last commit hash
           echo "Image URI is: $IMAGE_URI"  # Debugging: Print IMAGE_URI value
           docker tag frontend $IMAGE_URI
           echo "IMAGE_URI=${IMAGE_URI}" >> $GITHUB_ENV  # Set IMAGE_URI for later steps
@@ -213,9 +213,9 @@ jobs:
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}  # Explicitly pass the image reference
+          image-ref: ${{ secrets.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}  # Explicitly pass the image reference
         env:
-          IMAGE_URI: ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}  # Ensure IMAGE_URI is available as env variable
+          IMAGE_URI: ${{ secrets.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}  # Ensure IMAGE_URI is available as env variable
 
       # Push Docker image to AWS ECR
       - name: Push Docker image to AWS ECR
@@ -223,7 +223,7 @@ jobs:
           echo "Pushing Docker image to AWS ECR..."
           docker push ${{ env.IMAGE_URI }}  # Use the IMAGE_URI from the environment variable
 
-# FOR BACKEND CI, REPLACE ALL FRONTEND VARIABLES WITH BACKEND DETAILS, E.G, THE SONAR TOKEN FOR BACKEND PROJECT, BACKEND ECR REPO NAME, BACKND DIRECTORY FOR SONAR SCANNER, # and name the file as backend.yaml in the .gtihub/workflows directory 
+# FOR BACKEND CI, REPLACE ALL FRONTEND VARIABLES WITH BACKEND DETAILS, E.G, THE SONAR TOKEN FOR BACKEND PROJECT, BACKEND ECR REPO NAME, BACKND DIRECTORY FOR SONAR SCANNER, # and name the file as backend.yaml in the .gtihub/workflows directory. We will create a full CI/CD for backend as we proceed in this write up. 
 
 ```
 
@@ -844,7 +844,381 @@ Login and check if there is an handshake between the frontend, backend and psotg
 
 PLEASE NOTE: In the above set up, I only use one single loadbanacer to expose traffic for all the application in all the environments inside our kubernetes cluster. This is achieved by setting our service type to ClusterIP inside our service deployment and use this single loadbalancer to expose all the traffic. This is the cost optimization concept of kubernetes.
 
-# Phase3 (continous deployment and delivery with ArgoCD)
+
+# Third Phase  (continous deployment and delivery with ArgoCD)
+
+ArgoCD is a continous delivery/deployment tool used for pipeline automation in delivering changes and commit made to github application into our kubernetes cluster. The commit triggers a pipeline that alters our kubernetes/helm/fastapi-chart folder which triggers our ArgoCD for continous delivery using helm for continous depoloyment.
+
+- Here is the installation process and deployment process below:
+Install ArgoCD with the command:
+
+```
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+kubectl get svc argocd-server -n argocd
+```
+- copy the load balancer DNS and browse it on your browser (http://loadbalancer-dns)
+login using the following credentials
+
+- username = admin
+- password = run the below command anmd copy the echoed password or simply create a bash script for this and run it
+  
+```
+#!/bin/bash
+
+# Name of the Kubernetes secret
+SECRET_NAME="argocd-initial-admin-secret" 
+
+
+NAMESPACE="argocd" 
+
+# Extract the password from the secret and decode it
+PASSWORD=$(kubectl get secret $SECRET_NAME -n $NAMESPACE -o jsonpath="{.data.password}" | base64 --decode)
+
+# Print the decoded password
+echo "Decoded password: $PASSWORD"
+```
+
+Now login to argoCD server with the echoed password. This will open the ArgoCD UI
+
+NOW LETS CREATE A PROJECT ON ARGOCD
+
+- click on new application in the argocd UI.
+- give your application a name ("frontend-dev" for frontend application in dev environment)
+- leave project as default
+- select either manual or automatic deployment. For this, select automatic and thick the box for self-healing
+- select git as the source repository
+- paste the repository url in the url box
+- delete HEAD for revision and type your branch name (for this, the branch name is "dev")
+- it will automatic bring out your chart when you place your cursor in the chart box, select the kubernetes/helm/fastapi-chart
+- scroll down to values file and select the values file for the app you want to deploy. frontend dev environment, select values-frontend-dev.yaml
+- repeat the same procedure to create an application for the backend-dev, postgres-dev, ingres-dev
+
+YOU CAN ALSO REPEAT SAME STEP FOR PROD ENVIRONMENT BY SELECTING THE GITHUB PRODUCTION BRANCH AND PRODUCTION VALUES.YAML FILES  ON YOUR ARGOCD SETUP.
+
+You can now browse your application by getting the ingress lioad balancer and create a record for it just like we did when we created helm deployment above.
+
+- also login with the superuser details to confirm proper networking in your deployment.
+
+# Now we need to create a CD for our pipeline. add the follow CD to our github actions pipeline 
+
+```
+update-newtag-in-helm-chart:
+    runs-on: ubuntu-latest
+
+    needs: docker_build_scan_push
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GIT_TOKEN }}
+
+    - name: Update tag in Helm chart
+      run: |
+        sed -i 's/tag: .*/tag: "${{ github.sha }}"/' Kubernetes/helm/fastapi-chart/values-frontend-dev.yaml
+
+    - name: Commit and push changes
+      run: |
+        git config --global user.email "akurracy@gmail.com"
+        git config --global user.name "Oke Babatunde"
+        git add Kubernetes/helm/fastapi-chart/values-frontend-dev.yaml
+        git commit -m "Update tag in Helm chart Frontend dev"
+        git push
+```
+The above script will update our tag inside the values.yaml file. For Example, the tag value inside the values-frontend-dev.yaml will be update with the new commit sha and the key value becomes " tag: <new-commit-sha>"
+
+
+# Now this is the entire github actions CI/CD pipeline for the frontend application. remember the github workflows is named frontend-dev.yaml. 
+
+```
+name: CI/CD Pipeline for Frontend-dev.
+
+on:
+  push:
+    branches:
+      - dev
+    paths-ignore:
+      - 'Kubernetes/**'
+      - 'Terraform/**'
+      - 'README.md'
+      - '.github/workflows/backend.yaml'
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  sonarcloud_scan:
+    runs-on: ubuntu-latest
+    steps:
+      # Set up Java 17
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Install unzip
+      - name: Install unzip
+        run: sudo apt-get install -y unzip
+
+      # Install SonarScanner
+      - name: Install SonarScanner
+        run: |
+          wget -qO- https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip -O /tmp/sonar-scanner.zip
+          unzip /tmp/sonar-scanner.zip -d /tmp
+          echo "/tmp/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
+
+      # SonarQube Scan
+      - name: SonarQube Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_FRONTEND }}
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=frontend \
+            -Dsonar.sources=./frontend \
+            -Dsonar.host.url=http://52.91.52.173:9000 \
+            -Dsonar.login=$SONAR_TOKEN_FRONTEND
+
+  docker_build_scan_push:
+    needs: sonarcloud_scan
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Install AWS CLI (if needed for additional AWS commands later)
+      - name: Install AWS CLI
+        run: sudo apt-get install -y awscli
+
+      # Configure AWS credentials using GitHub secrets
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Login to Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # Log in to DockerHub with Token
+      - name: Log in to DockerHub with Token
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t frontend ./frontend
+
+      # Tag Docker image with the correct ECR repository URI
+      - name: Tag Docker image
+        id: tag-image
+        run: |
+          IMAGE_URI=${{ secrets.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}
+          echo "Image URI is: $IMAGE_URI"  # Debugging: Print IMAGE_URI value
+          docker tag frontend $IMAGE_URI
+          echo "IMAGE_URI=${IMAGE_URI}" >> $GITHUB_ENV  # Set IMAGE_URI for later steps
+
+      # Trivy scan Docker image for vulnerabilities
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}  # Explicitly pass the image reference
+        env:
+          IMAGE_URI: ${{ secrets.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}  # Ensure IMAGE_URI is available as env variable
+
+      # Push Docker image to AWS ECR
+      - name: Push Docker image to AWS ECR
+        run: |
+          echo "Pushing Docker image to AWS ECR..."
+          docker push ${{ env.IMAGE_URI }}  # Use the IMAGE_URI from the environment variable
+
+
+  update-newtag-in-helm-chart:
+    runs-on: ubuntu-latest
+
+    needs: docker_build_scan_push
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GIT_TOKEN }}
+
+    - name: Update tag in Helm chart
+      run: |
+        sed -i 's/tag: .*/tag: "${{ github.sha }}"/' Kubernetes/helm/fastapi-chart/values-frontend-dev.yaml
+
+    - name: Commit and push changes
+      run: |
+        git config --global user.email "akurracy@gmail.com"
+        git config --global user.name "Oke Babatunde"
+        git add Kubernetes/helm/fastapi-chart/values-frontend-dev.yaml
+        git commit -m "Update tag in Helm chart Frontend dev"
+        git push
+```
+
+# Please follow the exact same step to create the CI/CD for your backend application by changing the necessary variables in the pipeline script. the backend workflow file is named backend.yaml
+
+```
+name: CI/CD Pipeline for Backend-dev.
+
+on:
+  push:
+    branches:
+      - dev
+    paths-ignore:
+      - 'Kubernetes/**'
+      - 'Terraform/**'
+      - 'README.md'
+      - '.github/workflows/frontend.yaml'
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  sonarcloud_scan:
+    runs-on: ubuntu-latest
+    steps:
+      # Set up Java 17
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Install unzip
+      - name: Install unzip
+        run: sudo apt-get install -y unzip
+
+      # Install SonarScanner
+      - name: Install SonarScanner
+        run: |
+          wget -qO- https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip -O /tmp/sonar-scanner.zip
+          unzip /tmp/sonar-scanner.zip -d /tmp
+          echo "/tmp/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
+
+      # SonarQube Scan
+      - name: SonarQube Scan
+        env:
+          SONAR_TOKEN_BACKEND: ${{ secrets.SONAR_TOKEN_BACKEND }}
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=backend \
+            -Dsonar.sources=./backend \
+            -Dsonar.host.url=http://52.91.52.173:9000 \
+            -Dsonar.login=$SONAR_TOKEN_BACKEND
+
+  docker_build_scan_push:
+    needs: sonarcloud_scan
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_BACKEND }}
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Install AWS CLI (if needed for additional AWS commands later)
+      - name: Install AWS CLI
+        run: sudo apt-get install -y awscli
+
+      # Configure AWS credentials using GitHub secrets
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Login to Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # Log in to DockerHub with Token
+      - name: Log in to DockerHub with Token
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t backend ./backend
+
+      # Tag Docker image with the correct ECR repository URI
+      - name: Tag Docker image
+        id: tag-image
+        run: |
+          IMAGE_URI=${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ github.sha }}
+          echo "Image URI is: $IMAGE_URI"  # Debugging: Print IMAGE_URI value
+          docker tag frontend $IMAGE_URI
+          echo "IMAGE_URI=${IMAGE_URI}" >> $GITHUB_ENV  # Set IMAGE_URI for later steps
+
+      # Trivy scan Docker image for vulnerabilities
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ github.sha }}  # Explicitly pass the image reference
+        env:
+          IMAGE_URI: ${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ github.sha }}  # Ensure IMAGE_URI is available as env variable
+
+      # Push Docker image to AWS ECR
+      - name: Push Docker image to AWS ECR
+        run: |
+          echo "Pushing Docker image to AWS ECR..."
+          docker push ${{ env.IMAGE_URI }}  # Use the IMAGE_URI from the environment variable
+
+
+  update-newtag-in-helm-chart:
+    runs-on: ubuntu-latest
+
+    needs: docker_build_scan_push
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GIT_TOKEN }}
+
+    - name: Update tag in Helm chart
+      run: |
+        sed -i 's/tag: .*/tag: "${{ github.sha }}"/' Kubernetes/helm/fastapi-chart/values-backend-dev.yaml
+
+    - name: Commit and push changes
+      run: |
+        git config --global user.email "akurracy@gmail.com"
+        git config --global user.name "Oke Babatunde"
+        git add Kubernetes/helm/fastapi-chart/values-backend-dev.yaml
+        git commit -m "Update tag in Helm chart Backend dev"
+        git push
+```
+
+
+
+
 
 
 
