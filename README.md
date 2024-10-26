@@ -831,7 +831,7 @@ you can use your own  domain name to set this record. we have defined this domai
 for each deployments
 
 now browse your frontend using the DNS name 
-``
+```
 http://dev-myakuracy.click # you can use your own domain as you wish
 ```
 to login and check if there is an handshake between the frontend, backendf and psotgres database, use the login crdetials in the super user created inside the backend .env which can found inside the values-backend-dev.yaml file.
