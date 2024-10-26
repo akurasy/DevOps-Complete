@@ -40,13 +40,18 @@ Before you begin, ensure you have the following prerequisites in place:
 
 4. **Kubectl Installed**:   This project requires kubectl to run kubernetes deployment command. It allows you to send a querry to the kubernetes api. Install Kubectl by [visiting this official kubernetes documentation](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
 
-5. **Helm Installed**: Helm is required for managing multiple production environment like dev, staging, qa and prod. helm can be installed b visiting the [helm offical documentation](https://helm.sh/docs/intro/install/)
+5. **Helm Installed**: Helm is required for managing multiple production environment like dev, staging, qa and prod. helm can be installed by visiting the [helm offical documentation](https://helm.sh/docs/intro/install/)
 
 
 
 # STEP1 (Infrastructure Provisioning)
-Before you begin this, a basic understanding of terraform is required. Look into the terraform script and change the variables to suite your deployment
-clone this repository into your server by running the command 
+Before you begin this, a basic understanding of terraform is required. Look into the terraform script and change the variables to suite your deployment.
+Clone this repository and run aws configure in your server by running the command:
+
+```
+aws configure
+#use your iam secret key, access key and region to set up permission for this jump server.
+```
 
 ```
 git clone https://github.com/akurasy/devops-complete.git
@@ -95,4 +100,127 @@ login username = admin
 login password = admin123
 
 
-goto this repository, click on actions and open a workflow tab to write your pipeline. You can give the flow anyname you want, but the workflow directory has ther naming convention ".github/workflows/name-of-workflow.yaml" .
+on the sonarqube server, click on project ===> input the project name =====> create a token for your project (copy and save this token) ====> select locally set up the project =====> and click on other language or select the programming language you want to scan. The sonarqube scan command will show after creating the project, you will copy this command and save to use in your github actions pipeline.
+
+# Now lets run our CI
+Before we begin, you need to create a secret for your pipeline. To create a secret, click on settings, on the bottom left, under secrets click on actions, scroll down to repository secrets and select new repository, create a secret for your aws secret key, aws access key, sonarqube token, github token, aws ecr repository name, aws region, docker hub username and docker hub token.   After this, goto this repository, click on actions and open a workflow tab to write your pipeline. You can give the flow anyname you want, but the workflow directory has ther naming convention ".github/workflows/name-of-workflow.yaml" .
+
+Paste the below script for your CI pipeline named frontend.yaml. we are only creating this for the dev environment, so we created a github branch called "dev" . 
+
+```
+name: CI/CD Pipeline for Frontend-dev.
+
+on:
+  push:
+    branches:
+      - dev
+    paths-ignore:
+      - 'Kubernetes/**'
+      - 'Terraform/**'
+      - 'README.md'
+      - '.github/workflows/backend.yaml'
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  sonarcloud_scan:
+    runs-on: ubuntu-latest
+    steps:
+      # Set up Java 17
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Install unzip
+      - name: Install unzip
+        run: sudo apt-get install -y unzip
+
+      # Install SonarScanner
+      - name: Install SonarScanner
+        run: |
+          wget -qO- https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip -O /tmp/sonar-scanner.zip
+          unzip /tmp/sonar-scanner.zip -d /tmp
+          echo "/tmp/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
+
+      # SonarQube Scan
+      - name: SonarQube Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  #this is gotten from soanrqube configuration we did on soanrqube server.
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=frontend \     #our project name on sonarqube
+            -Dsonar.sources=./frontend \    #the path we want to scan. this will ensure only the frontend directory is scanned.
+            -Dsonar.host.url=http://52.91.52.173:9000 \ #replace 52.91.52.173 with your own public IP of youir sonarqube server.
+            -Dsonar.login=$SONAR_TOKEN  
+
+  docker_build_scan_push:
+    needs: sonarcloud_scan
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Install AWS CLI (if needed for additional AWS commands later)
+      - name: Install AWS CLI
+        run: sudo apt-get install -y awscli
+
+      # Configure AWS credentials using GitHub secrets
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Login to Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # Log in to DockerHub with Token
+      - name: Log in to DockerHub with Token
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t frontend ./frontend
+
+      # Tag Docker image with the correct ECR repository URI
+      - name: Tag Docker image
+        id: tag-image
+        run: |
+          IMAGE_URI=${{ secrets.ECR_REPOSITORY }}:${{ github.sha }} # This will tag your docker image with the last commit hash
+          echo "Image URI is: $IMAGE_URI"  # Debugging: Print IMAGE_URI value
+          docker tag frontend $IMAGE_URI
+          echo "IMAGE_URI=${IMAGE_URI}" >> $GITHUB_ENV  # Set IMAGE_URI for later steps
+
+      # Trivy scan Docker image for vulnerabilities
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}  # Explicitly pass the image reference
+        env:
+          IMAGE_URI: ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}  # Ensure IMAGE_URI is available as env variable
+
+      # Push Docker image to AWS ECR
+      - name: Push Docker image to AWS ECR
+        run: |
+          echo "Pushing Docker image to AWS ECR..."
+          docker push ${{ env.IMAGE_URI }}  # Use the IMAGE_URI from the environment variable
+
+```
