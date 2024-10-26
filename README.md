@@ -4,7 +4,7 @@ Welcome to the Full-Stack FastAPI and React template application deployed on Ama
 
 Welcome to the official README for the Three-tier Fastapi Application
 
-Application: This Python application is containerized as a Docker image on AmAZON ECR private repository  and deployed on AWS EKS using Kubernetes.
+Application: This application is containerized as a Docker image on Amazon ECR private repository  and deployed on AWS EKS using Kubernetes.
 
 ## Deployment Structure
 The deployment consist of the following components
@@ -38,8 +38,15 @@ Before you begin, ensure you have the following prerequisites in place:
 
 3. **Terraform Installed**: This project relies on Terraform for infrastructure provisioning. Make sure you have Terraform installed on your Ubuntu machine. You can find installation instructions for Terraform on the [official Terraform website](https://www.terraform.io/downloads.html).
 
-4. **Kubectl Installed**:   This project requires kubectl to run kubernetes deployment command. It allows you to send a querry to the kubernetes api. Install Kubectl by [visiting this official kubernetes website](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
+4. **Kubectl Installed**:   This project requires kubectl to run kubernetes deployment command. It allows you to send a querry to the kubernetes api. Install Kubectl by [visiting this official kubernetes documentation](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
 
 5. **Helm Installed**: Helm is required for managing multiple production environment like dev, staging, qa and prod. helm can be installed b visiting the [helm offical documentation](https://helm.sh/docs/intro/install/)
 
 
+
+# STEP1
+clone this repository into your server by running the command 
+
+```
+git clone https://github.com/akurasy/devops-complete.git
+```
