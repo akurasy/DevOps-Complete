@@ -264,16 +264,27 @@ the helm chart directory contains two default directories and two default files 
   
 The fastapi-chart directory chart looks like this:
 fastapi-chart/
-├── charts/
-├── templates/
+
+├── charts/\
+
+├── templates
+
 │   ├── deployment.yaml
+
 │   ├── _helpers.tpl
+
 │   ├── hpa.yaml
+
 │   ├── ingress.yaml
+
 │   ├── service.yaml
+
 │   └── serviceaccount.yaml
+
 ├── .helmignore
+
 ├── Chart.yaml
+
 └── values.yaml
 
 ```
