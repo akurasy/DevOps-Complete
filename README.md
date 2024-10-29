@@ -113,7 +113,7 @@ on the sonarqube server, click on project ===> input the project name and click 
 
 ![sonar page](./images/sonar2.png)
 
-Snar successful;ly pass quality gate
+Sonar successfully passed quality gate
 ![sonar page](./images/sonar3.png)
 
 # Now lets run our CI
@@ -241,7 +241,7 @@ jobs:
 
 ![workflow page](./images/Github-workflow.png)
 
-# FOR BACKEND CI, REPLACE ALL FRONTEND VARIABLES WITH BACKEND DETAILS, E.G, THE SONAR TOKEN FOR BACKEND PROJECT, BACKEND ECR REPO NAME, BACKND DIRECTORY FOR SONAR SCANNER, # and name the file as backend.yaml in the .gtihub/workflows directory. We will create a full CI/CD for backend as we proceed in this write up. 
+# FOR BACKEND CI, REPLACE ALL FRONTEND VARIABLES WITH BACKEND DETAILS, E.G, THE SONAR TOKEN FOR BACKEND PROJECT, BACKEND ECR REPO NAME, BACKND DIRECTORY FOR SONAR SCANNER, # and name the file as backend.yaml in the .github/workflows directory. We will create a full CI/CD for backend as we proceed in this write up. 
 
 ```
 
@@ -277,7 +277,7 @@ This above directory contains all our helm directories and files. Please note, y
 the helm chart directory contains two default directories and two default files mamely:
 -  chart.yaml file: This is like a metadata containing the information of our chart
 -  chart directory #please delete this directory
--  templates directory : This contains our kuerntes manifest files
+-  templates directory : This contains our kubernetes manifest files
 -  values.yaml file : This is where we store varibales for our kubernetes manifest files
   
 The fastapi-chart directory chart looks like this:
@@ -306,7 +306,7 @@ fastapi-chart/
 └── values.yaml
 
 ```
-#change directory to the heml chart
+#change directory to the helm chart
 cd fastapi-chart
 
 #remove the default chart directory
@@ -804,11 +804,11 @@ rules:
                 number: 8000
 ```
 
-In The above values file, we have variablelised all our kubenrtes objects and we are calling them as a vraible from the values file into our kubernetes manifest files
+In The above values file, we have variablelised all our kubernetes objects and we are calling them as a variable from the values file into our kubernetes manifest files
 
 
 # Second Phase (Deploying  our kubernetes using Helm)
-lets deploy namespace for cluster. we are only using the dev namespace for this project, so we have defined the "dev" namespace in our values file
+lets deploy namespace for cluster. We are only using the dev namespace for this project, so we have defined the "dev" namespace in our values file
 
 ```
 kubectl create ns dev
@@ -821,7 +821,7 @@ helm install frontend-dev ./fastapi-chart -f ./fastapi-chart/values-frontend-dev
 
 # frontend-dev is the name of the helm deployment
 # ./fastapi-chart is our helm chart that houses all our folders and files
-# ./fastapi-chart/values-frontend-dev.yaml is an instruction given to helm to check this file and use all the variables inside t deploy our frontend application
+# ./fastapi-chart/values-frontend-dev.yaml is an instruction given to helm to check this file and use all the variables inside it to deploy our frontend application
 
 ```
 
@@ -870,7 +870,7 @@ backend - api-dev.myakuracy.click
 
 ![record page](./images/route53.png)
 
-you can use your own  domain name to set this record. we have defined this domain names in our values-ingress-dev.yaml file and inside our environmentyal variables  (.env)
+you can use your own  domain name to set this record. we have defined this domain names in our values-ingress-dev.yaml file and inside our environmental variables  (.env)
 for each deployments
 
 now browse your frontend using the DNS name 
@@ -945,7 +945,7 @@ NOW LETS CREATE A PROJECT ON ARGOCD
 
 YOU CAN ALSO REPEAT SAME STEP FOR PROD ENVIRONMENT BY SELECTING THE GITHUB PRODUCTION BRANCH AND PRODUCTION VALUES.YAML FILES  ON YOUR ARGOCD SETUP.
 
-You can now browse your application by getting the ingress lioad balancer and create a record for it just like we did when we created helm deployment above.
+You can now browse your application by getting the ingress load balancer and create a record for it just like we did when we created helm deployment above.
 
 - also login with the superuser details to confirm proper networking in your deployment.
 
@@ -979,7 +979,7 @@ update-newtag-in-helm-chart:
         git commit -m "Update tag in Helm chart Frontend dev"
         git push
 ```
-The above script will update our tag inside the values.yaml file. For Example, the tag value inside the values-frontend-dev.yaml will be update with the new commit sha and the key value becomes " tag: <new-commit-sha>"
+The above script will update our tag inside the values.yaml file. For Example, the tag value inside the values-frontend-dev.yaml will be updated with the new commit sha and the key value becomes " tag: <new-commit-sha>"
 
 
 # Now this is the entire github actions CI/CD pipeline for the frontend application. remember the github workflows is named frontend-dev.yaml. 
@@ -1297,8 +1297,7 @@ run the command to install prometheus:
 helm install prometheus prometheus-community/prometheus --values prometheus.yaml
 ```
 
-
-Grafana Installation
+Grafana Installation Steps:
 ```
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
@@ -1324,7 +1323,7 @@ kubectl get svc
 
 copy and browse the load balancer dns for your grafana
 
-resolve the load balancer of your proetheus service to a domain name. Example, Prometheus.myakuracy.click . This will be needed when setting the data source for grafana
+resolve the load balancer of your prometheus service to a domain name. Example, Prometheus.myakuracy.click . This will be needed when setting the data source for grafana
 
 
 login to grafana UI usinf the follow credentials:
@@ -1337,7 +1336,7 @@ kubectl get secret --namespace default grafana -o jsonpath="{.data.admin-passwor
 ![grafana page](./images/grafana-pass.png)
 
 
-You will be able to acess to access the grafana server UI
+You will be able to access the grafana server UI
 
 ![grafana page](./images/grafana1.png)
 
@@ -1365,7 +1364,7 @@ Your dashboard will show and you can see the elements in your cluster
 
 ![dashboard page](./images/dashboard5.png)
 
-# Happy Grafana and Prometheus Viewing
+# Happy Monitory and Observability
 
 
 
