@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
-      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
     steps:
       # Checkout the repository
       - name: Checkout repository
@@ -94,7 +94,7 @@ jobs:
       - name: Tag Docker image
         id: tag-image
         run: |
-          IMAGE_URI=${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+          IMAGE_URI=${{ secrets.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}
           echo "Image URI is: $IMAGE_URI"  # Debugging: Print IMAGE_URI value
           docker tag frontend $IMAGE_URI
           echo "IMAGE_URI=${IMAGE_URI}" >> $GITHUB_ENV  # Set IMAGE_URI for later steps
@@ -103,9 +103,9 @@ jobs:
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}  # Explicitly pass the image reference
+          image-ref: ${{ secrets.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}  # Explicitly pass the image reference
         env:
-          IMAGE_URI: ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}  # Ensure IMAGE_URI is available as env variable
+          IMAGE_URI: ${{ secrets.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}  # Ensure IMAGE_URI is available as env variable
 
       # Push Docker image to AWS ECR
       - name: Push Docker image to AWS ECR
