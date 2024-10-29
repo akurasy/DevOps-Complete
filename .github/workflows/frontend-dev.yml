@@ -9,6 +9,7 @@ on:
       - 'Terraform/**'
       - 'README.md'
       - '.github/workflows/backend.yaml'
+      - 'images/**'
   pull_request:
     branches:
       - dev
