@@ -47,7 +47,7 @@ jobs:
           sonar-scanner \
             -Dsonar.projectKey=frontend \
             -Dsonar.sources=./frontend \
-            -Dsonar.host.url=http://52.91.52.173:9000 \
+            -Dsonar.host.url=http://3.80.111.197:9000 \
             -Dsonar.login=$SONAR_TOKEN
 
   docker_build_scan_push:
