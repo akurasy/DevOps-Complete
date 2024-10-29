@@ -100,10 +100,10 @@ login username = admin
 login password = admin123
 
 
-on the sonarqube server, click on project ===> input the project name =====> create a token for your project (copy and save this token) ====> select locally set up the project =====> and click on other language or select the programming language you want to scan. The sonarqube scan command will show after creating the project, you will copy this command and save to use in your github actions pipeline.
+on the sonarqube server, click on project ===> input the project name and click next =====> select global settiongs and click next ====> create a token for your project by selecting local project (copy and save this token) click continue =====> and click on other language or select the programming language you want to scan. The sonarqube scan command will show after creating the project, you will copy this command and save to use in your github actions pipeline.
 
 # Now lets run our CI
-Before we begin, you need to create a secret for your pipeline. To create a secret, click on settings, on the bottom left, under secrets click on actions, scroll down to repository secrets and select new repository, create a secret for your aws secret key, aws access key, sonarqube token (for frontend and backend), github token, aws ecr repository name (for frontend and backend), aws region, docker hub username and docker hub token.   After this, goto this repository, click on actions and open a workflow tab to write your pipeline. You can give the flow anyname you want, but the workflow directory has ther naming convention ".github/workflows/name-of-workflow.yaml" .
+Before we begin, you need to create a secret for your pipeline. To create a secret, click on settings, on the bottom left, under secrets click on actions, scroll down to repository secrets and select new repository, create a secret for your aws secret key, aws access key, sonarqube token (for frontend and backend), github token, aws ecr repository name (for frontend and backend), aws region, docker hub username and docker hub token.   After this, goto this repository, click on actions and open a workflow tab to write your pipeline. You can give the flow any name you want, but the workflow directory has the naming convention ".github/workflows/name-of-workflow.yaml" .
 
 Paste the below script for your CI pipeline named frontend.yaml. we are only creating this for the dev environment, so we created a github branch called "dev" . 
 
