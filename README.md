@@ -73,6 +73,10 @@ terraform plan
 terraform apply --auto-approve
 ```
 
+![terraform page](./images/terraform1.png)
+
+![terraform page](./images/terraform2.png)
+
 # STEP2 (Connect to the cluster and run your Continous Integration with Github Actions)
 
 connect the cluster with the command 
@@ -82,6 +86,7 @@ aws eks update-kubeconfig --name zik-cluster --region us-east-1
 
 #the name of my cluster is zik-cluster and the cluster is deployed in us-east-1 region
 ```
+![main page](./images/cluster-connect.png)
 
 After connecting to the cluster, we need to set up our CI using Github Actions to run the unit test code, scan the application for vulnerability using sonarqube, build the application with docker, scan our docker image with trivy and push the image to ECR repository. before deploying this CI, we need to set up a sonarqube server using docker. install docker and deploy sonarqube using the commands below
 
@@ -101,11 +106,20 @@ login username = admin
 
 login password = admin123
 
+![sonar page](./images/sonar1.png)
 
-on the sonarqube server, click on project ===> input the project name and click next =====> select global settiongs and click next ====> create a token for your project by selecting local project (copy and save this token) click continue =====> and click on other language or select the programming language you want to scan. The sonarqube scan command will show after creating the project, you will copy this command and save to use in your github actions pipeline.
+
+on the sonarqube server, click on project ===> input the project name and click next =====> select global settings and click next ====> create a token for your project by selecting local project (copy and save this token) click continue =====> and click on other language or select the programming language you want to scan. The sonarqube scan command will show after creating the project, you will copy this command and save to use in your github actions pipeline.
+
+![sonar page](./images/sonar2.png)
+
+Snar successful;ly pass quality gate
+![sonar page](./images/sonar3.png)
 
 # Now lets run our CI
 Before we begin, you need to create a secret for your pipeline. To create a secret, click on settings, on the bottom left, under secrets click on actions, scroll down to repository secrets and select new repository, create a secret for your aws secret key, aws access key, sonarqube token (for frontend and backend), github token, aws ecr repository name (for frontend and backend), aws region, docker hub username and docker hub token.   After this, goto this repository, click on actions and open a workflow tab to write your pipeline. You can give the flow any name you want, but the workflow directory has the naming convention ".github/workflows/name-of-workflow.yaml" .
+
+![secret page](./images/github-secret.png)
 
 Paste the below script for your CI pipeline named frontend.yaml. we are only creating this for the dev environment, so we created a github branch called "dev" . 
 
@@ -225,6 +239,8 @@ jobs:
           echo "Pushing Docker image to AWS ECR..."
           docker push ${{ env.IMAGE_URI }}  # Use the IMAGE_URI from the environment variable
 
+![workflow page](./images/Github-workflow.png)
+
 # FOR BACKEND CI, REPLACE ALL FRONTEND VARIABLES WITH BACKEND DETAILS, E.G, THE SONAR TOKEN FOR BACKEND PROJECT, BACKEND ECR REPO NAME, BACKND DIRECTORY FOR SONAR SCANNER, # and name the file as backend.yaml in the .gtihub/workflows directory. We will create a full CI/CD for backend as we proceed in this write up. 
 
 ```
@@ -307,6 +323,8 @@ cd templates
 rm ./*  #remove everything you have here and put your own kubernetes manifest files.
 
 ```
+![helm page](./images/helm.png)
+
 now paste the following kubernetes manifest files in the template directory
 
 ```
@@ -383,6 +401,11 @@ spec:
   targetCPUUtilizationPercentage: 80
 {{- end }}
 ```
+![frontend yaml page](./images/frontend1.png)
+
+![frontend yaml page](./images/frontend2.png)
+
+
 ```
 vi backend.yaml
 ```
@@ -595,7 +618,7 @@ spec:
 ```
 
 
-In the above files, the template houses all manifests file and we are calling some of the kubernetes objects as a vraibale from the values.yaml file, this files will be used to deploy our application in various environments without creating multiple kubernetes file for different environments. we will use this single file for each deployment accross all environments. This is what Helm will help us to achieve in deployment our application to different environments without creating multiple manifests files. all variables will be done in our values.yaml file. 
+In the above files, the template houses all manifests file and we are calling some of the kubernetes objects as a vraibale from the values.yaml file, this files will be used to deploy our application in various environments without creating multiple kubernetes file for different environments. we will use this single file for each deployment accross all environments. This is what Helm will help us to achieve in deploying our application to different environments without creating multiple manifests files. all variables will be done in our values.yaml file. 
 
 now goto the fastapi-chart directory and create values.yaml files for each environment and deployments. the following value files are created;
 
@@ -715,6 +738,7 @@ env:
   - name: POSTGRES_PASSWORD
     value: "changethis123-dev"
 ```
+![frontend yaml page](./images/frontend-values.png)
 
 ```
 vi values-postgres-dev.yaml
@@ -801,6 +825,8 @@ helm install frontend-dev ./fastapi-chart -f ./fastapi-chart/values-frontend-dev
 
 ```
 
+![frontend yaml page](./images/frontend-deploy.png)
+
 
 deploy backend, run the command
 
@@ -842,6 +868,8 @@ frontend - dev.myakuracy.click
 
 backend - api-dev.myakuracy.click
 
+![record page](./images/route53.png)
+
 you can use your own  domain name to set this record. we have defined this domain names in our values-ingress-dev.yaml file and inside our environmentyal variables  (.env)
 for each deployments
 
@@ -849,8 +877,9 @@ now browse your frontend using the DNS name
 ```
 http://dev.myakuracy.click # you can use your own domain as you wish
 ```
-Login and check if there is an handshake between the frontend, backend and psotgres database, use the login credentials in the super user created inside the backend environmental variable, which can found inside the values-backend-dev.yaml file.
+Login and check if there is an handshake between the frontend, backend and postgres database, use the login credentials in the super user created inside the backend environmental variable, which can found inside the values-backend-dev.yaml file.
 
+![frontend page](./images/frontend1.png)
 
 # Repeat the above procedure for production environment by creating the namespace for prod, the values.yaml files for your production and run the helm commands to deploy your prod environment. 
 
@@ -871,6 +900,8 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
 kubectl get svc argocd-server -n argocd
 ```
+![argocd page](./images/argocd-installation.png)
+
 - copy the load balancer DNS and browse it on your browser (http://loadbalancer-dns)
 login using the following credentials
 
@@ -892,8 +923,12 @@ PASSWORD=$(kubectl get secret $SECRET_NAME -n $NAMESPACE -o jsonpath="{.data.pas
 # Print the decoded password
 echo "Decoded password: $PASSWORD"
 ```
+![argocd login page](./images/argocd-login.png)
 
-Now login to argoCD server with the echoed password. This will open the ArgoCD UI
+Now login to argoCD server by browsing the loadbalancer and default username with the echoed password. This will open the ArgoCD UI
+
+![argocd login page](./images/argocd1.png)
+
 
 NOW LETS CREATE A PROJECT ON ARGOCD
 
@@ -913,6 +948,10 @@ YOU CAN ALSO REPEAT SAME STEP FOR PROD ENVIRONMENT BY SELECTING THE GITHUB PRODU
 You can now browse your application by getting the ingress lioad balancer and create a record for it just like we did when we created helm deployment above.
 
 - also login with the superuser details to confirm proper networking in your deployment.
+
+![argocd page](./images/argo2-login.png)
+
+![argocd  page](./images/argo3-login.png)
 
 # Now we need to create a CD for our pipeline. add the follow CD to our github actions pipeline 
 
@@ -1229,6 +1268,7 @@ jobs:
         git push
 ```
 
+![argocd login page](./images/CICD.png)
 
 
 # STEP 4 (Monitoring and logging using Prometheus and Grafana)
@@ -1294,20 +1334,36 @@ password: run the command to echo the base64 decoded admin password
 ```
 kubectl get secret --namespace default grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
+![grafana page](./images/grafana-pass.png)
+
+
 You will be able to acess to access the grafana server UI
+
+![grafana page](./images/grafana1.png)
+
 
 On the UI, set up grafana as follows:
 
 On the left, click connections, select data source, add source, select prometheus and scroll down. 
 In the connection box, add the prometheus url and scroll down to click save and test. 
 
+![data source page](./images/dashboard1.png)
+
+![data source page](./images/dashboard2.png)
+
 Now let's add a dashboard. 
 Click on dashboard on the left, click create dashboard, click on add visualisation,  select prometheus, you can now customise your own dashboard or import and existing dashboard. 
 
 To Import dashboard, click on dashboard, select new on the upper right, click on import. Scroll down and Enter the dashboard ID: 6417 -- This ID will display the pod, deployment, replica, click on load. you can search for other preferred dashboard ID or URL. 
 
-Then scroll down and select prometheus server as the data source for the dashboard and click import. 
+![dashboard page](./images/dashboard3.png)
 
+Then scroll down and select prometheus server as the data source for the dashboard and click import. 
+![dashboard page](./images/dashboard4.png)
+
+Your dashboard will show and you can see the elements in your cluster
+
+![dashboard page](./images/dashboard5.png)
 
 # Happy Grafana and Prometheus Viewing
 
