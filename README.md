@@ -265,7 +265,7 @@ the helm chart directory contains two default directories and two default files 
 The fastapi-chart directory chart looks like this:
 fastapi-chart/
 
-├── charts/\
+├── charts/
 
 ├── templates
 
@@ -809,7 +809,7 @@ helm install backend-dev ./fastapi-chart -f ./fastapi-chart/values-backend-dev.y
 deploy postgres, run the command
 
 ```
-helm install postgres-dev ./fastapi-chart -f ./fastapi-chart/values-postgres-dev.yaml**
+helm install postgres-dev ./fastapi-chart -f ./fastapi-chart/values-postgres-dev.yaml
 ```
 
 
@@ -858,7 +858,7 @@ PLEASE NOTE: In the above set up, I only use one single loadbanacer to expose tr
 
 # Third Phase  (continous deployment and delivery with ArgoCD)
 
-ArgoCD is a continous delivery/deployment tool used for pipeline automation in delivering changes and commit made to github application into our kubernetes cluster. The commit triggers a pipeline that alters our kubernetes/helm/fastapi-chart folder which triggers our ArgoCD for continous delivery using helm for continous depoloyment.
+ArgoCD is a continous delivery/deployment tool used for pipeline automation in delivering changes and commit made to github application into our kubernetes cluster. The commit triggers a pipeline that alters our kubernetes/helm/fastapi-chart folder which triggers our ArgoCD for continous delivery using helm for continous deployment.
 
 - Here is the installation process and deployment process below:
 Install ArgoCD with the command:
@@ -1302,7 +1302,7 @@ In the connection box, add the prometheus url and scroll down to click save and 
 Now let's add a dashboard. 
 Click on dashboard on the left, click create dashboard, click on add visualisation,  select prometheus, you can now customise your own dashboard or import and existing dashboard. 
 
-To Import dashboard, click on dashboard, select new on the upper right, click on import. Scroll down and Enter the dashboard ID: 6417 -- This ID will display the pod, deployment, replica, click on load. you can searhc for other preferred dashboard ID or URL. 
+To Import dashboard, click on dashboard, select new on the upper right, click on import. Scroll down and Enter the dashboard ID: 6417 -- This ID will display the pod, deployment, replica, click on load. you can search for other preferred dashboard ID or URL. 
 
 Then scroll down and select prometheus server as the data source for the dashboard and click import. 
 
