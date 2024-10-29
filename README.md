@@ -157,7 +157,7 @@ jobs:
           sonar-scanner \
             -Dsonar.projectKey=frontend \     #our project name on sonarqube
             -Dsonar.sources=./frontend \    #the path we want to scan. this will ensure only the frontend directory is scanned.
-            -Dsonar.host.url=http://52.91.52.173:9000 \ #replace 52.91.52.173 with your own public IP of youir sonarqube server.
+            -Dsonar.host.url=http://3.80.111.197:9000 \ #replace 52.91.52.173 with your own public IP of youir sonarqube server.
             -Dsonar.login=$SONAR_TOKEN_FRONTEND  
 
   docker_build_scan_push:
