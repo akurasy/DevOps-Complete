@@ -923,11 +923,11 @@ PASSWORD=$(kubectl get secret $SECRET_NAME -n $NAMESPACE -o jsonpath="{.data.pas
 # Print the decoded password
 echo "Decoded password: $PASSWORD"
 ```
-![argocd login page1](./images/argocd-login.png)
+![argocd login page](./images/argo-login.png)
 
 Now login to argoCD server by browsing the loadbalancer and default username with the echoed password. This will open the ArgoCD UI
 
-![argocd login page2](./images/argocd1.png)
+![argocd login page](./images/argocd1.png)
 
 
 NOW LETS CREATE A PROJECT ON ARGOCD
@@ -949,9 +949,9 @@ You can now browse your application by getting the ingress load balancer and cre
 
 - also login with the superuser details to confirm proper networking in your deployment.
 
-![argocd page1](./images/argo2-login.png)
+![argocd page](./images/argo2.png)
 
-![argocd  page2](./images/argo3-login.png)
+![argocd  page](./images/argo3.png)
 
 # Now we need to create a CD for our pipeline. add the follow CD to our github actions pipeline 
 
